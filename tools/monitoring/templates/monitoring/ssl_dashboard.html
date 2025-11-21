@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Cek SSL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1f2937;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        .header-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #4b5563;
+            color: white;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .back-button:hover {
+            background-color: #1f2937;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #f9fafb;
+            color: #4b5563;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+        }
+        td {
+            font-size: 0.95rem;
+        }
+        tr:hover {
+            background-color: #f3f4f6;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .status-valid {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .status-warning {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status-expired {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .status-error {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+        .message-cell {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard Cek SSL</h1>
+        <div class="header-actions">
+            <a href="{% url 'monitor_dashboard' %}" class="back-button">
+                &larr; Kembali ke Dasbor
+            </a>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Domain</th>
+                    <th>URL</th>
+                    <th>Kedaluwarsa</th>
+                    <th>Status</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for website in websites %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ website.name }}</td>
+                    <td><a href="{{ website.url }}" target="_blank">{{ website.url }}</a></td>
+                    <td>
+                        {% if website.ssl_expiry_date %}
+                            {{ website.ssl_expiry_date|date:"Y-m-d H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                    {% if website.ssl_error_message %}
+                        <span class="status-badge status-error">Eror</span>
+                    {% elif website.ssl_expiry_date %}
+                        {% with days_left=website.ssl_expiry_date|timeuntil %}
+                            {% if website.ssl_expiry_date < "now" %}
+                                <span class="status-badge status-expired">Kedaluwarsa</span>
+                            {% elif days_left.days <= 30 %}
+                                <span class="status-badge status-warning">Segera Kedaluwarsa</span>
+                            {% else %}
+                                <span class="status-badge status-valid">Valid</span>
+                            {% endif %}
+                        {% endwith %}
+                    {% else %}
+                        <span class="status-badge status-error">Tidak Terdeteksi</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if website.ssl_error_message %}
+                        {{ website.ssl_error_message }}
+                    {% elif website.ssl_expiry_date %}
+                        Sertifikat valid.
+                    {% else %}
+                        Tidak ada data.
+                    {% endif %}
+                </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center;">Tidak ada situs web yang terdaftar.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

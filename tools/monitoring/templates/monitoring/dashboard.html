@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr; /* Kolom kiri 250px, kanan sisanya */
+            min-height: 100vh;
+        }
+        .sidebar {
+            background-color: #fff;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            color: #1f2937;
+        }
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            color: #4b5563;
+            transition: background-color 0.2s, color 0.2s;
+            margin-bottom: 0.5rem;
+        }
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background-color: #e5e7eb;
+            color: #2563eb;
+        }
+        .sidebar-menu a .icon {
+            margin-right: 1rem;
+            font-size: 1.25rem;
+        }
+        .main-content {
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <div class="sidebar">
+            <h2>Tools Monitoring</h2>
+            <nav class="sidebar-menu">
+                <a href="{% url 'monitor_dashboard' %}" class="active">
+                    <i class="fas fa-chart-line icon"></i> Dasbor
+                </a>
+                <a href="{% url 'ssl_dashboard' %}">
+                    <i class="fas fa-shield-alt icon"></i> Cek SSL
+                </a>
+                <a href="{% url 'bandwidth_dashboard' %}">
+                    <i class="fas fa-tachometer-alt icon"></i> Monitor Bandwidth
+                </a>
+                <hr class="my-4">
+                           </nav>
+        </div>
+        <div class="main-content">
+            <header class="flex justify-between items-center bg-white p-6 rounded-lg shadow-md">
+                <h1 class="text-3xl font-bold text-gray-800">Dasbor Monitoring Defacement</h1>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'add_website' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-150">
+                        + Tambah Situs Web Baru
+                    </a>
+                </div>
+            </header>
+
+            <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Daftar Situs Web</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Domain</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <!-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pesan</th> -->
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for website in websites %}
+                            <tr class="hover:bg-gray-100">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ forloop.counter }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ website.name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><a href="{{ website.url }}" target="_blank" class="text-blue-600 hover:text-blue-900">{{ website.url }}</a></td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {% if website.error_message %}bg-yellow-100 text-yellow-800{% elif website.is_defaced %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
+                                        {% if website.error_message %}Error{% elif website.is_defaced %}Defaced{% else %}Aman{% endif %}
+                                    </span>
+                                </td>
+                                <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ website.error_message|default:"-" }}</td> -->
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="{% url 'edit_website' pk=website.pk %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                    <a href="{% url 'delete_website' pk=website.pk %}" class="text-red-600 hover:text-red-900 ml-4">Hapus</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Tidak ada situs web yang terdaftar.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

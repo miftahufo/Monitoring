@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Pemantauan Bandwidth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
+    <style>
+        body { font-family: sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 p-6 font-sans antialiased">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <header class="flex justify-between items-center bg-white p-6 rounded-lg shadow-md">
+            <h1 class="text-3xl font-bold text-gray-800">Dasbor Pemantauan Bandwidth</h1>
+            <a href="{% url 'monitor_dashboard' %}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-300 transition duration-150">
+                Kembali ke Dasbor Utama
+            </a>
+            <a href="{% url 'bandwidth_report_weekly' %}" target="_blank" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-300 transition duration-150">
+                    <button>Laporan Mingguan</button>
+                </a>
+                <a href="{% url 'bandwidth_report_monthly' %}" target="_blank" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md font-semibold hover:bg-gray-300 transition duration-150">
+                    <button>Laporan Bulanan</button>
+                </a>
+            <!-- <div class="report-buttons">
+                
+            </div> -->
+        </header>
+
+        {% if summary_stats %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-gray-500 font-medium">Rata-rata Harian</p>
+                <p class="text-xl font-bold text-gray-900 mt-2">Download {{ daily_stats.avg_download|floatformat:2 }}, Upload {{ daily_stats.avg_upload|floatformat:2 }} <span class="text-sm text-gray-500">Mbps</span></p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-gray-500 font-medium">Rata-rata Mingguan</p>
+                <p class="text-xl font-bold text-gray-900 mt-2">Download {{ weekly_stats.avg_download|floatformat:2 }}, Upload {{ weekly_stats.avg_upload|floatformat:2 }} <span class="text-sm text-gray-500">Mbps</span></p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-gray-500 font-medium">Rata-rata Bulanan</p>
+                <p class="text-xl font-bold text-gray-900 mt-2">Download {{ monthly_stats.avg_download|floatformat:2 }}, Upload {{ monthly_stats.avg_upload|floatformat:2 }} <span class="text-sm text-gray-500">Mbps</span></p>
+            </div>
+        </div>
+        {% endif %}
+
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Grafik Kecepatan Internet</h2>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="chart-container">
+                {% if results %}
+                    <canvas id="myChart" width="400" height="200"></canvas>
+                {% else %}
+                    <p class="text-gray-500 text-center">Belum ada data untuk membuat grafik.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Data Mentah</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waktu</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kecepatan Unduh (Mbps)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kecepatan Unggah (Mbps)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for result in results %}
+                        <tr class="hover:bg-gray-100">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ result.timestamp|date:"d M Y, H:i:s" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ result.download_speed_mbps|floatformat:2 }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ result.upload_speed_mbps|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Belum ada data tes kecepatan.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {{ labels|json_script:"labels-data" }}
+    {{ download|json_script:"download-data" }}
+    {{ upload|json_script:"upload-data" }}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const labels = JSON.parse(document.getElementById("labels-data").textContent);
+            const download = JSON.parse(document.getElementById("download-data").textContent);
+            const upload = JSON.parse(document.getElementById("upload-data").textContent);
+            
+            if (labels.length > 0) {
+                const ctx = document.getElementById('myChart');
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Download (Mbps)',
+                                data: download,
+                                borderColor: '#2563EB',
+                                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                fill: 'start',
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Upload (Mbps)',
+                                data: upload,
+                                borderColor: '#111827',
+                                backgroundColor: 'rgba(17, 24, 39, 0.1)',
+                                fill: 'start',
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'minute',
+                                    tooltipFormat: 'HH:mm',
+                                    displayFormats: {
+                                        minute: 'HH:mm'
+                                    }
+                                },
+                                ticks: {
+                                    autoSkip: true,
+                                    maxRotation: 0,
+                                    source: 'data'
+                                }
+                            },
+                            y: { beginAtZero: true }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
